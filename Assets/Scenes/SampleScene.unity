@@ -411,14 +411,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   quadPerUnit: 2
   erosion: {fileID: 1760619314}
-  gridSizeX: 100
-  gridSizeZ: 100
+  gridSizeX: 10
+  gridSizeZ: 10
   material: {fileID: 2100000, guid: e4b864d354d161ac585b1a5c375959ff, type: 2}
   frequency: 5
   octaves: 3
   lacunarity: 2
   persistence: 0.3
-  amplitude: 15
+  amplitude: 2
 --- !u!4 &692613396
 Transform:
   m_ObjectHideFlags: 0
@@ -702,7 +702,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1760619313}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 40.19351, y: 32.03709, z: 7.6174564}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
