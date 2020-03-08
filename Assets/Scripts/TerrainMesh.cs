@@ -153,6 +153,7 @@ public class TerrainMesh : MonoBehaviour
         gameMesh.Clear();
 		gameMesh.vertices = vertices;
 		gameMesh.triangles = triangles;
+		gameMesh.uv = uvs.ToArray();
 		gameMesh.RecalculateNormals();
 
 		collider.sharedMesh = gameMesh;
