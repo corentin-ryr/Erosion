@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,12 +8,20 @@ public class Erosion : MonoBehaviour
     //References and parameters of the map
     float[] heightMap;
     int mapSizeX;
+    int mapSizeZ;
     float quadSize;
 
     //Parameters of the simulation
     [Header("Parameters of the simulation")]
     public float pinertia = 0.5f; //How much should the old direction be taken into acount
     public int iterationDrop = 30;
+    public float pminslope = 0.5f;//TODO filler value
+    public float pcapacity = 1; //TODO filler value
+    public float pdeposition = 0.5f; //TODO filler value
+    public float perosion = 0.5f; //TODO filler value
+    public float pgravity = 9.81f; //TODO filler value
+    public float pevaporation = 0.1f; //TODO filler value
+    public int pradius = 2;
 
     public void OnEnable () {
         positionGizmos = new Vector3[iterationDrop];
@@ -22,6 +31,7 @@ public class Erosion : MonoBehaviour
     public void erosion (float[] heightMap, int mapSizeX, float quadSize, int iteration) {
         this.heightMap = heightMap;
         this.mapSizeX = mapSizeX;
+        this.mapSizeZ = heightMap.Length / mapSizeX;
         this.quadSize = quadSize;
 
         for (int i = 0; i < iteration; i++)
@@ -34,9 +44,10 @@ public class Erosion : MonoBehaviour
         //Create a drop of water
         Vector2 pos;
         Vector2 dir; //Normalized
-        float vel; //Speed of the drop
-        float water; //amount of water in the drop 
-        float sediment; //amount of sediment in the drop
+        float vel = 0; //Speed of the drop
+        float water = 0; //amount of water in the drop 
+        float sediment = 0; //amount of sediment in the drop
+        float capacity = 0;
 
         //Initialize variables
         pos = new Vector2 (57.1f, 30.3f);
@@ -45,7 +56,7 @@ public class Erosion : MonoBehaviour
         for (int i = 0; i < iterationDrop; i++)
         {
             //Debug
-            positionGizmos[i] = new Vector3(pos.x, getHeightFromCornerVertex(pos) + 0.5f , pos.y);
+            positionGizmos[i] = new Vector3(pos.x, getHeightFromCornerVertex(pos) + 0.25f , pos.y);
 
             Vector2 g = gradient(pos);
 
@@ -56,20 +67,60 @@ public class Erosion : MonoBehaviour
 
             if (dir == Vector2.zero)
             {
-                dir = new Vector2 (Random.Range(0, 1), Random.Range(0, 1));
+                dir = new Vector2 (UnityEngine.Random.Range(0, 1), UnityEngine.Random.Range(0, 1));
             }
             dir = dir.normalized;
 
             float hold = getHeightFromCornerVertex(pos);
+            
             //Update the position
             pos = pos + dir; //Always move by one unit
+            if (!checkValidPosition(pos)) {
+                break;
+            }
 
             //Calculate height difference
             float hdif = getHeightFromCornerVertex(pos) - hold;
 
+            if (hdif > 0)
+            {
+                //TODO deposit sediment
+            }
+            else
+            {
+                capacity = Mathf.Max(-hdif, pminslope) * vel * water * pcapacity;
+
+                if (sediment > capacity)
+                {
+                    float amountToDeposit = (sediment - capacity) * pdeposition;
+                    //TODO deposit sediment
+                }
+                else
+                {
+                    float amountToErode = Mathf.Min((capacity - sediment) * perosion, -hdif);
+                    //TODO deposit sediment
+                }
+            }
+
+            //Update of the speed and the amount of water in the drop
+            vel = Mathf.Sqrt(vel * vel + hdif * pgravity);
+
+            water = water * (1 - pevaporation);
+
             Debug.Log("position" + pos);
             yield return new WaitForSeconds(1);
         }
+    }
+
+    private bool checkValidPosition(Vector2 position)
+    {
+        if (position.x < 0 || position.x > mapSizeX * quadSize ||
+            position.y < 0 || position.y >mapSizeZ * quadSize)
+        {
+            return false;
+        }
+
+        return true;
     }
 
     private Vector2 gradient (Vector2 position) {
@@ -133,6 +184,11 @@ public class Erosion : MonoBehaviour
     Vector3[] positionGizmos;
     Vector3[] directionGizmos;
     public void OnDrawGizmos () {
+        if (positionGizmos == null || directionGizmos == null)
+        {
+            return;
+        }
+
         for (int i = 0; i < positionGizmos.Length; i++)
         {
             Debug.DrawLine(positionGizmos[i], positionGizmos[i] + directionGizmos[i]);

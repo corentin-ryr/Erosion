@@ -413,7 +413,7 @@ MonoBehaviour:
   erosion: {fileID: 1760619314}
   gridSizeX: 100
   gridSizeZ: 100
-  material: {fileID: 2100000, guid: e4b864d354d161ac585b1a5c375959ff, type: 2}
+  material: {fileID: 2100000, guid: 6cea7684e7b5f4dfd9a5dc82b4a49a23, type: 2}
   frequency: 5
   octaves: 3
   lacunarity: 2
@@ -696,6 +696,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   pinertia: 0.5
   iterationDrop: 30
+  pminslope: 0.5
+  pcapacity: 1
+  pdeposition: 0.5
+  perosion: 0.5
+  pgravity: 9.81
+  pevaporation: 0.1
 --- !u!4 &1760619315
 Transform:
   m_ObjectHideFlags: 0

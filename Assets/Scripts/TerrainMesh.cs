@@ -87,9 +87,10 @@ public class TerrainMesh : MonoBehaviour
 			for (int j = 0; j < (gridSizeX * quadPerUnit + 1); j++)
 			{
 				vertices[i * (gridSizeX * quadPerUnit + 1) + j] = new Vector3(quadSize * j, 0f, quadSize * i);
-				uvs.Add(new Vector2(quadSize * i / gridSizeX * quadPerUnit, 
-									quadSize * j / gridSizeX * quadPerUnit)
-				);
+				float uvx = (i * gridSizeX) % quadSize;
+				// uvs.Add(new Vector2(uvx, 
+				// 					uvx)
+				// );
 			}
 		}
 
