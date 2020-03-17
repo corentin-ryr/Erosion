@@ -702,6 +702,9 @@ MonoBehaviour:
   perosion: 0.5
   pgravity: 9.81
   pevaporation: 0.1
+  pradius: 2
+  visualizerPrefab: {fileID: 1814796927458170349, guid: 9a22fa31f78402f1ca171733338435b1,
+    type: 3}
 --- !u!4 &1760619315
 Transform:
   m_ObjectHideFlags: 0

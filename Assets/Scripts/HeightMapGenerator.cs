@@ -18,17 +18,17 @@ public class HeightMapGenerator
     //Generer la heightMap ============================================================================================
     
     //Genere la heightmap a partir du perlinnoise et du gradient carré
-    public float[] GenerateHeightMap (int width, int height) {
-        float[] noise = GenerateNoise(width, height);
-        float[] gradient = SquareGradient(width, height);
+    public float[] GenerateHeightMap (int sizeX, int sizeZ) {
+        float[] noise = GenerateNoise(sizeX, sizeZ);
+        float[] gradient = SquareGradient(sizeX, sizeZ);
 
-        float[] result = new float[height * width];
+        float[] result = new float[sizeZ * sizeX];
 
-        for (int i = 0; i < height; i++)
+        for (int i = 0; i < sizeZ; i++)
         {
-            for (int j = 0; j < width; j++)
+            for (int j = 0; j < sizeX; j++)
             {
-                result[i * width + j] = (noise[i * width + j] - gradient[i * width + j]) * amplitude;
+                result[i * sizeX + j] = (noise[i * sizeX + j] - gradient[i * sizeX + j]) * amplitude;
             }
             
         }

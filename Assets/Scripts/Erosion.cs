@@ -21,7 +21,7 @@ public class Erosion : MonoBehaviour
     public float perosion = 0.5f; //TODO filler value
     public float pgravity = 9.81f; //TODO filler value
     public float pevaporation = 0.1f; //TODO filler value
-    public int pradius = 2;
+    public float pradius = 2;
 
     public void OnEnable () {
         positionGizmos = new Vector3[iterationDrop];
@@ -33,6 +33,8 @@ public class Erosion : MonoBehaviour
         this.mapSizeX = mapSizeX;
         this.mapSizeZ = heightMap.Length / mapSizeX;
         this.quadSize = quadSize;
+
+        erodeRadius(new Vector2(57.1f, 30.3f), 10);
 
         for (int i = 0; i < iteration; i++)
         {
@@ -164,7 +166,89 @@ public class Erosion : MonoBehaviour
                         
         return new Vector2(gradXf, gradZf);
 
+    }
 
+    Vector2Int[] directions = new Vector2Int[] {
+        new Vector2Int(1, 0),
+        new Vector2Int(0, 1),
+        new Vector2Int(-1, 0),
+        new Vector2Int(0, -1)
+    };
+
+    private void erodeRadius (Vector2 position, float amountToErode) {
+        
+
+        float[] weightArray = new float[heightMap.Length];
+
+        bool oneCellInRadius = true;
+        int directionIndex = 0;
+        int nbStep = 1;
+        float sum = 0; //Sum of all weights
+
+        int index = getCornerIndex(position);
+        weightArray[index] = calculateWeight(position, index); //Computation of the first cell
+
+        while (oneCellInRadius) //While we accessed (ie. one cell is within radius) at least one cell during last lap, we continue
+        {
+            for (int j = 0; j < 2; j++)
+            {
+                for (int i = 0; i < nbStep; i++)
+                {
+                    index = moveWithDirection(directionIndex, index);
+                    weightArray[index] = calculateWeight(position, index);
+                }
+                //Change direction
+                directionIndex = (directionIndex + 1) / 3;
+
+                for (int i = 0; i < nbStep; i++)
+                {
+                    index = moveWithDirection(directionIndex, index);
+                    weightArray[index] = calculateWeight(position, index);
+                }
+
+                //Change direction (we did half of a turn)
+                directionIndex = (directionIndex + 1) / 3;
+                nbStep++; //After two sides of the spiral, the number of cell to move is inceased by one
+            }
+
+            if (nbStep > 4)
+            {
+                oneCellInRadius = false;
+            }
+            
+        }
+
+        createVisualizer(weightArray, mapSizeX, quadSize);
+    }
+
+    private float calculateWeight (Vector2 center, int index) {
+        Vector2 worldCoord = getWorldCoord(index);
+        float distanceToCenter = Mathf.Sqrt((getWorldCoord(index) - center).magnitude);
+        return Mathf.Max(0, pradius - distanceToCenter);
+    }
+
+    private int moveWithDirection (int direction, int index) {
+        Vector2 vectDir = directions[direction];
+
+        if (vectDir.x == 1)
+        {
+            index++;
+        }
+        if (vectDir.y == 1)
+        {
+            index = index + mapSizeX;
+        }
+
+        if (vectDir.x == -1)
+        {
+            index--;
+        }
+        if (vectDir.y == -1)
+        {
+            index = index - mapSizeX;
+        }
+        //TODO when index is out of bounds
+        return index;
     }
 
     //calculate height from position
@@ -180,9 +264,38 @@ public class Erosion : MonoBehaviour
         return getHeightFromCornerVertex(position.x, position.y);
     }
 
-    //Debug
+    private int getCornerIndex (Vector2 position) {
+        int posX = Mathf.FloorToInt(position.x / quadSize);
+        int posZ = Mathf.FloorToInt(position.y / quadSize);
+        return posZ * mapSizeX + posX;
+    }
+
+    private Vector2 getWorldCoord (int index) {
+        int posX = index % mapSizeX;
+        int posZ = index / mapSizeX;
+        return new Vector2 (posX * quadSize, posZ * quadSize);
+    }
+
+    #region Debug
     Vector3[] positionGizmos;
     Vector3[] directionGizmos;
+
+    [Header("Debug")]
+    public ArrayVisualizer visualizerPrefab;
+
+    ArrayVisualizer visualizer;
+
+    private void createVisualizer (float[] heightMap, int mapSizeX, float quadSize) {
+        Debug.Log((1 / quadSize));
+        
+        if (visualizer != null)
+        {
+            Destroy(visualizer.gameObject);
+        }
+        visualizer = Instantiate(visualizerPrefab, new Vector3(0, 10, 0), Quaternion.identity);
+        visualizer.transform.SetParent(transform);
+        visualizer.CreateMesh(heightMap, mapSizeX, quadSize);
+    }
     public void OnDrawGizmos () {
         if (positionGizmos == null || directionGizmos == null)
         {
@@ -197,5 +310,6 @@ public class Erosion : MonoBehaviour
         }
         
     }
+    #endregion
 
 }
