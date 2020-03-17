@@ -34,6 +34,7 @@ public class Erosion : MonoBehaviour
         this.mapSizeZ = heightMap.Length / mapSizeX;
         this.quadSize = quadSize;
 
+        //StartCoroutine(erodeRadius(new Vector2(57.1f, 30.3f), 10));
         erodeRadius(new Vector2(57.1f, 30.3f), 10);
 
         for (int i = 0; i < iteration; i++)
@@ -130,32 +131,7 @@ public class Erosion : MonoBehaviour
         int posZ = Mathf.FloorToInt(position.y / quadSize);
 
         float u = position.x - (int)position.x; //Distance from the point on the x axis
-        float v = position.y - (int)position.y; //Distance from the point on the z axis
-        
-        Debug.Log("u et v :" + u + " " + v);
-        /*
-        //Grad in x, z
-        float gradX = getHeightFromCoordinates(posX + 1, posZ) - getHeightFromCoordinates(posX, posZ);
-        float gradZ = getHeightFromCoordinates(posX, posZ + 1) - getHeightFromCoordinates(posX, posZ);
-
-        Vector2 gradXZ = new Vector2(gradX, gradZ);
-        //Grad in x + 1, z
-        gradX = getHeightFromCoordinates(posX + 1, posZ) - getHeightFromCoordinates(posX, posZ);
-        gradZ = getHeightFromCoordinates(posX + 1, posZ + 1) - getHeightFromCoordinates(posX + 1, posZ);
-
-        Vector2 gradX1Z = new Vector2(gradX, gradZ);
-
-        //Grad in x, z + 1
-        gradX = getHeightFromCoordinates(posX + 1, posZ + 1) - getHeightFromCoordinates(posX, posZ + 1);
-        gradZ = getHeightFromCoordinates(posX, posZ + 1) - getHeightFromCoordinates(posX, posZ);
-
-        Vector2 gradXZ1 = new Vector2(gradX, gradZ);
-
-        //Grad in x + 1, z + 1
-        gradX = getHeightFromCoordinates(posX + 1, posZ + 1) - getHeightFromCoordinates(posX, posZ + 1);
-        gradZ = getHeightFromCoordinates(posX + 1, posZ + 1) - getHeightFromCoordinates(posX + 1, posZ);
-
-        Vector2 gradX1Z1 = new Vector2(gradX, gradZ);*/
+        float v = position.y - (int)position.y; //Distance from the point on the z axis        
 
         //TODO check if the value must be divide by the size of the cell
         float gradXf =  (getHeightFromCoordinates(posX + 1, posZ) - getHeightFromCoordinates(posX, posZ)) * (1 - v) + 
@@ -186,32 +162,50 @@ public class Erosion : MonoBehaviour
         float sum = 0; //Sum of all weights
 
         int index = getCornerIndex(position);
-        weightArray[index] = calculateWeight(position, index); //Computation of the first cell
+        sum += weightArray[index] = calculateWeight(position, index); //Computation of the first cell
 
         while (oneCellInRadius) //While we accessed (ie. one cell is within radius) at least one cell during last lap, we continue
         {
+            bool allCellUnreachable = true;
             for (int j = 0; j < 2; j++)
             {
                 for (int i = 0; i < nbStep; i++)
                 {
                     index = moveWithDirection(directionIndex, index);
-                    weightArray[index] = calculateWeight(position, index);
+
+                    float weight = calculateWeight(position, index);
+                    sum += weightArray[index] = weight;
+                    if (weight != 0)
+                    {
+                        allCellUnreachable = false;
+                    }
                 }
+
+                //createVisualizer(weightArray, mapSizeX, quadSize);
+                //yield return new WaitForSeconds(2);
                 //Change direction
-                directionIndex = (directionIndex + 1) / 3;
+                directionIndex = (directionIndex + 1) % 4;
 
                 for (int i = 0; i < nbStep; i++)
                 {
                     index = moveWithDirection(directionIndex, index);
-                    weightArray[index] = calculateWeight(position, index);
+                    float weight = calculateWeight(position, index);
+                    sum += weightArray[index] = weight;
+                    if (weight != 0)
+                    {
+                        allCellUnreachable = false;
+                    }
                 }
 
+                //createVisualizer(weightArray, mapSizeX, quadSize);
+                //yield return new WaitForSeconds(2);
+
                 //Change direction (we did half of a turn)
-                directionIndex = (directionIndex + 1) / 3;
+                directionIndex = (directionIndex + 1) % 4;
                 nbStep++; //After two sides of the spiral, the number of cell to move is inceased by one
             }
 
-            if (nbStep > 4)
+            if (allCellUnreachable)
             {
                 oneCellInRadius = false;
             }
@@ -223,7 +217,7 @@ public class Erosion : MonoBehaviour
 
     private float calculateWeight (Vector2 center, int index) {
         Vector2 worldCoord = getWorldCoord(index);
-        float distanceToCenter = Mathf.Sqrt((getWorldCoord(index) - center).magnitude);
+        float distanceToCenter = (getWorldCoord(index) - center).magnitude;
         return Mathf.Max(0, pradius - distanceToCenter);
     }
 
