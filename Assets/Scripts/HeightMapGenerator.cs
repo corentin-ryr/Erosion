@@ -20,7 +20,8 @@ public class HeightMapGenerator
     //Genere la heightmap a partir du perlinnoise et du gradient carré
     public float[] GenerateHeightMap (int sizeX, int sizeZ) {
         float[] noise = GenerateNoise(sizeX, sizeZ);
-        float[] gradient = SquareGradient(sizeX, sizeZ);
+        //float[] gradient = SquareGradient(sizeX, sizeZ);
+        float[] gradient = new float[sizeX * sizeZ];
 
         float[] result = new float[sizeZ * sizeX];
 

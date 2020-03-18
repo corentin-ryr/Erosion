@@ -1,26 +1,28 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class Erosion : MonoBehaviour
 {
     //References and parameters of the map
-    float[] heightMap;
-    int mapSizeX;
-    int mapSizeZ;
-    float quadSize;
+    private int mapSizeX;
+    private int mapSizeZ;
+    private float quadSize;
+    private float[] heightMap;
+
+    public TerrainMesh terrain;
+    
 
     //Parameters of the simulation
     [Header("Parameters of the simulation")]
     public float pinertia = 0.5f; //How much should the old direction be taken into acount
-    public int iterationDrop = 30;
-    public float pminslope = 0.5f;//TODO filler value
-    public float pcapacity = 1; //TODO filler value
-    public float pdeposition = 0.5f; //TODO filler value
-    public float perosion = 0.5f; //TODO filler value
+    public int iterationDrop = 75;
+    public float pminslope = 0.05f;//TODO filler value
+    public float pcapacity = 8; //TODO filler value
+    public float pdeposition = 0.1f; //TODO filler value
+    public float perosion = 0.1f; //TODO filler value
     public float pgravity = 9.81f; //TODO filler value
-    public float pevaporation = 0.1f; //TODO filler value
+    public float pevaporation = 0.05f; //TODO filler value
     public float pradius = 2;
 
     public void OnEnable () {
@@ -28,38 +30,46 @@ public class Erosion : MonoBehaviour
         directionGizmos = new Vector3[iterationDrop];
     }
 
-    public void erosion (float[] heightMap, int mapSizeX, float quadSize, int iteration) {
-        this.heightMap = heightMap;
+    public void erosion (float[] originalHeightMap, int mapSizeX, float quadSize, int iteration) {
+        this.heightMap = originalHeightMap;
         this.mapSizeX = mapSizeX;
-        this.mapSizeZ = heightMap.Length / mapSizeX;
+        this.mapSizeZ = originalHeightMap.Length / mapSizeX;
         this.quadSize = quadSize;
-
-        //StartCoroutine(erodeRadius(new Vector2(57.1f, 30.3f), 10));
-        erodeRadius(new Vector2(57.1f, 30.3f), 10);
+        
 
         for (int i = 0; i < iteration; i++)
         {
-            StartCoroutine(simulateDrop());
+            simulateDrop();
+
+            //Debug
+            terrain.UpdateMeshWithHeightMap();
+            //yield return new WaitForSeconds(1);
         }
     }
-    IEnumerator simulateDrop () {
+
+    public float[] getHeightMap () {
+        return heightMap;
+    }
+    private void simulateDrop () {
 
         //Create a drop of water
         Vector2 pos;
         Vector2 dir; //Normalized
-        float vel = 0; //Speed of the drop
-        float water = 0; //amount of water in the drop 
+        float vel = 1; //Speed of the drop
+        float water = 1; //amount of water in the drop 
         float sediment = 0; //amount of sediment in the drop
         float capacity = 0;
 
         //Initialize variables
-        pos = new Vector2 (57.1f, 30.3f);
+        float posX = Random.Range(0, (mapSizeX - 1) * quadSize);
+        float posZ = Random.Range(0, (mapSizeZ - 1) * quadSize);
+        pos = new Vector2 (20.7f, 12.7f);
         dir = new Vector2 (0, 0);
 
         for (int i = 0; i < iterationDrop; i++)
         {
             //Debug
-            positionGizmos[i] = new Vector3(pos.x, getHeightFromCornerVertex(pos) + 0.25f , pos.y);
+            positionGizmos[i] = new Vector3(pos.x, getHeightFromCornerVertex(pos), pos.y);
 
             Vector2 g = gradient(pos);
 
@@ -72,7 +82,7 @@ public class Erosion : MonoBehaviour
             {
                 dir = new Vector2 (UnityEngine.Random.Range(0, 1), UnityEngine.Random.Range(0, 1));
             }
-            dir = dir.normalized;
+            dir = dir.normalized * quadSize;
 
             float hold = getHeightFromCornerVertex(pos);
             
@@ -84,41 +94,43 @@ public class Erosion : MonoBehaviour
 
             //Calculate height difference
             float hdif = getHeightFromCornerVertex(pos) - hold;
+            capacity = Mathf.Max(-hdif, pminslope) * vel * water * pcapacity;
 
             if (hdif > 0)
             {
-                //TODO deposit sediment
+                float amountToDeposit = Mathf.Min(sediment, hdif);
+                depositSediment(pos, amountToDeposit);
+                sediment -= amountToDeposit;
             }
             else
             {
-                capacity = Mathf.Max(-hdif, pminslope) * vel * water * pcapacity;
+                //
 
                 if (sediment > capacity)
                 {
                     float amountToDeposit = (sediment - capacity) * pdeposition;
-                    //TODO deposit sediment
+                    sediment -= amountToDeposit;
+                    depositSediment(pos, amountToDeposit);
                 }
                 else
                 {
                     float amountToErode = Mathf.Min((capacity - sediment) * perosion, -hdif);
-                    //TODO deposit sediment
+                    sediment += amountToErode;
+                    erodeRadius(pos, amountToErode);
                 }
             }
 
             //Update of the speed and the amount of water in the drop
-            vel = Mathf.Sqrt(vel * vel + hdif * pgravity);
+            vel = Mathf.Sqrt(vel * vel - hdif * pgravity);
 
             water = water * (1 - pevaporation);
-
-            Debug.Log("position" + pos);
-            yield return new WaitForSeconds(1);
         }
     }
 
     private bool checkValidPosition(Vector2 position)
     {
-        if (position.x < 0 || position.x > mapSizeX * quadSize ||
-            position.y < 0 || position.y >mapSizeZ * quadSize)
+        if (position.x < 0 || position.x > (mapSizeX - 1) * quadSize ||
+            position.y < 0 || position.y > (mapSizeZ - 1) * quadSize)
         {
             return false;
         }
@@ -151,6 +163,7 @@ public class Erosion : MonoBehaviour
         new Vector2Int(0, -1)
     };
 
+    //Erode in e circle around the drop :
     private void erodeRadius (Vector2 position, float amountToErode) {
         
 
@@ -172,8 +185,13 @@ public class Erosion : MonoBehaviour
                 for (int i = 0; i < nbStep; i++)
                 {
                     index = moveWithDirection(directionIndex, index);
-
                     float weight = calculateWeight(position, index);
+                    if (index < 0 || index > weightArray.Length)
+                    {
+                        sum += weight;
+                        continue;
+                    }
+                    
                     sum += weightArray[index] = weight;
                     if (weight != 0)
                     {
@@ -181,8 +199,6 @@ public class Erosion : MonoBehaviour
                     }
                 }
 
-                //createVisualizer(weightArray, mapSizeX, quadSize);
-                //yield return new WaitForSeconds(2);
                 //Change direction
                 directionIndex = (directionIndex + 1) % 4;
 
@@ -190,15 +206,18 @@ public class Erosion : MonoBehaviour
                 {
                     index = moveWithDirection(directionIndex, index);
                     float weight = calculateWeight(position, index);
+                    if (index < 0 || index > weightArray.Length)
+                    {
+                        sum += weight;
+                        continue;
+                    }
+                    
                     sum += weightArray[index] = weight;
                     if (weight != 0)
                     {
                         allCellUnreachable = false;
                     }
                 }
-
-                //createVisualizer(weightArray, mapSizeX, quadSize);
-                //yield return new WaitForSeconds(2);
 
                 //Change direction (we did half of a turn)
                 directionIndex = (directionIndex + 1) % 4;
@@ -211,8 +230,13 @@ public class Erosion : MonoBehaviour
             }
             
         }
+        //createVisualizer(weightArray, mapSizeX, quadSize);
 
-        createVisualizer(weightArray, mapSizeX, quadSize);
+        //Apply erosion to the heightMap
+        for (int i = 0; i < heightMap.Length; i++)
+        {
+            heightMap[i] -= weightArray[i] / sum * amountToErode;
+        }
     }
 
     private float calculateWeight (Vector2 center, int index) {
@@ -245,14 +269,55 @@ public class Erosion : MonoBehaviour
         return index;
     }
 
+    //Deposit soil :
+    private void depositSediment (Vector2 position, float amountToDeposit) {
+        int posX = Mathf.FloorToInt(position.x / quadSize);
+        int posZ = Mathf.FloorToInt(position.y / quadSize);
+
+        float u = (position.x - posX * quadSize) / quadSize; //Distance from the point on the x axis
+        float v = (position.y - posZ * quadSize) / quadSize; //Distance from the point on the z axis 
+
+        float weight00 = u * v ;
+        float weight01 = u * (1 - v);
+        float weight10 = (1 - u) * v;
+        float weight11 = (1 - u) * (1 - v);
+
+        heightMap[posZ * mapSizeX + posX] += weight00 * amountToDeposit;
+        heightMap[posZ * mapSizeX + posX + 1] += weight10 * amountToDeposit;
+        heightMap[(posZ + 1) * mapSizeX + posX] += weight01 * amountToDeposit;
+        heightMap[(posZ + 1) * mapSizeX + posX + 1] += weight11 * amountToDeposit;
+
+    }
+
     //calculate height from position
-    private float getHeightFromCoordinates (int x, int z) {
+    
+    private float getHeightFromCoordinates (int x, int z) { 
         return heightMap[z * mapSizeX + x];
     }
+        
+    
     private float getHeightFromCornerVertex (float x, float z) {
         int posX = Mathf.FloorToInt(x / quadSize);
         int posZ = Mathf.FloorToInt(z / quadSize);
-        return getHeightFromCoordinates(posX, posZ);
+
+        float u = (x - posX * quadSize) / quadSize; //Distance from the point on the x axis
+        float v = (z - posZ * quadSize) / quadSize; //Distance from the point on the z axis 
+
+        if (posX < 0 || posX > mapSizeX || posZ < 0 || posZ > mapSizeZ)
+        {
+            return float.NaN;
+        }
+        int index = posZ * mapSizeX + posX;
+        float height00 = heightMap[index];
+        float height10 = heightMap[index + 1];
+        float height01 = heightMap[index + mapSizeX];
+        float height11 = heightMap[index + mapSizeX + 1];
+
+        float height0 =  height00 * (1 - u) + height10 * u;
+        float height1 =  height01 * (1 - u) + height11 * u;
+
+        return height0 * (1 - v) + height1 * v;
+
     }
     private float getHeightFromCornerVertex (Vector2 position) {
         return getHeightFromCornerVertex(position.x, position.y);
@@ -299,7 +364,7 @@ public class Erosion : MonoBehaviour
         for (int i = 0; i < positionGizmos.Length; i++)
         {
             Debug.DrawLine(positionGizmos[i], positionGizmos[i] + directionGizmos[i]);
-            Gizmos.color = Color.Lerp(Color.blue, Color.red, (float)i / 10f);
+            Gizmos.color = Color.Lerp(Color.blue, Color.red, (float)i / iterationDrop);
             Gizmos.DrawSphere(positionGizmos[i], 0.1f);
         }
         

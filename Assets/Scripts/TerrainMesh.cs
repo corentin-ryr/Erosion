@@ -7,7 +7,7 @@ public class TerrainMesh : MonoBehaviour
 {
     public int quadPerUnit = 3;
 
-    float[] heightMap;
+    private float[] heightMap;
 
     Mesh gameMesh;
 	MeshCollider collider;
@@ -50,6 +50,8 @@ public class TerrainMesh : MonoBehaviour
 
 		renderer.material = material;
 
+		erosion.terrain = this;
+
         GenerateHeightMap();
         GeneratePlane();
         RefreshMesh();
@@ -58,6 +60,8 @@ public class TerrainMesh : MonoBehaviour
         RefreshMesh();
 
 		ErodeTerrain();
+		UpdateHeight();
+		RefreshMesh();
     }
 
     private void GenerateHeightMap()
@@ -136,7 +140,8 @@ public class TerrainMesh : MonoBehaviour
 
 	private void ErodeTerrain()
     {
-        erosion.erosion(heightMap, gridSizeX * quadPerUnit + 1, 1 / (float)quadPerUnit, 1);
+        //StartCoroutine(erosion.erosion(heightMap, gridSizeX * quadPerUnit + 1, 1 / (float)quadPerUnit, 20));
+		erosion.erosion(heightMap, gridSizeX * quadPerUnit + 1, 1 / (float)quadPerUnit, 1);
     }
 
 	//Action called by the button (can be after modifying the size of the map or the parameters of the noise)
@@ -159,5 +164,12 @@ public class TerrainMesh : MonoBehaviour
 
 		collider.sharedMesh = gameMesh;
     }
+
+	//Debug
+	public void UpdateMeshWithHeightMap () {
+		heightMap = erosion.getHeightMap();
+		UpdateHeight();
+		RefreshMesh();
+	}
 
 }
