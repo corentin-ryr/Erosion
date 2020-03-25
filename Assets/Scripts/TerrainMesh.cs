@@ -140,8 +140,9 @@ public class TerrainMesh : MonoBehaviour
 
 	private void ErodeTerrain()
     {
-        //StartCoroutine(erosion.erosion(heightMap, gridSizeX * quadPerUnit + 1, 1 / (float)quadPerUnit, 20));
-		erosion.erosion(heightMap, gridSizeX * quadPerUnit + 1, 1 / (float)quadPerUnit, 1);
+        //StartCoroutine(erosion.erosion(heightMap, gridSizeX * quadPerUnit + 1, 1 / (float)quadPerUnit, 10000));
+		erosion.erosion(heightMap, gridSizeX * quadPerUnit + 1, 1 / (float)quadPerUnit, 10000);
+
     }
 
 	//Action called by the button (can be after modifying the size of the map or the parameters of the noise)

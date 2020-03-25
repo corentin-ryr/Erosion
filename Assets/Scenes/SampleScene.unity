@@ -197,8 +197,8 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 206491480}
-  m_LocalRotation: {x: -0.3651511, y: -0.0069090193, z: 0.0027888222, w: -0.9309185}
-  m_LocalPosition: {x: 19.271883, y: 28.350735, z: -17.470081}
+  m_LocalRotation: {x: -0.24247211, y: 0.2975892, z: -0.07812182, w: -0.92007875}
+  m_LocalPosition: {x: 263.13342, y: 74.026764, z: -19.670765}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -411,14 +411,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   quadPerUnit: 1
   erosion: {fileID: 1760619314}
-  gridSizeX: 50
-  gridSizeZ: 50
+  gridSizeX: 250
+  gridSizeZ: 250
   material: {fileID: 2100000, guid: 6cea7684e7b5f4dfd9a5dc82b4a49a23, type: 2}
   frequency: 3
   octaves: 4
   lacunarity: 2
   persistence: 0.3
-  amplitude: 18
+  amplitude: 100
 --- !u!4 &692613396
 Transform:
   m_ObjectHideFlags: 0
@@ -695,11 +695,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   terrain: {fileID: 0}
-  pinertia: 0.3
+  pinertia: 0.4
   iterationDrop: 30
-  pminslope: 0.01
-  pcapacity: 8
-  pdeposition: 0.2
+  pminCapacity: 0.01
+  pmaxCapacity: 5
+  pcapacity: 4
+  pdeposition: 0.1
   perosion: 0.4
   pgravity: 5
   pevaporation: 0.02

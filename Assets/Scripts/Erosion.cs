@@ -17,7 +17,8 @@ public class Erosion : MonoBehaviour
     [Header("Parameters of the simulation")]
     public float pinertia = 0.5f; //How much should the old direction be taken into acount
     public int iterationDrop = 75;
-    public float pminslope = 0.05f;//TODO filler value
+    public float pminCapacity = 0.01f;//TODO filler value
+    public float pmaxCapacity = 20f;//TODO filler value
     public float pcapacity = 8; //TODO filler value
     public float pdeposition = 0.1f; //TODO filler value
     public float perosion = 0.1f; //TODO filler value
@@ -43,7 +44,7 @@ public class Erosion : MonoBehaviour
 
             //Debug
             terrain.UpdateMeshWithHeightMap();
-            //yield return new WaitForSeconds(1);
+            //yield return new WaitForSeconds(0.1f);
         }
     }
 
@@ -63,7 +64,7 @@ public class Erosion : MonoBehaviour
         //Initialize variables
         float posX = Random.Range(0, (mapSizeX - 1) * quadSize);
         float posZ = Random.Range(0, (mapSizeZ - 1) * quadSize);
-        pos = new Vector2 (20.7f, 12.7f);
+        pos = new Vector2 (posX, posZ);
         dir = new Vector2 (0, 0);
 
         for (int i = 0; i < iterationDrop; i++)
@@ -86,45 +87,73 @@ public class Erosion : MonoBehaviour
 
             float hold = getHeightFromCornerVertex(pos);
             
+            Vector2 posOld = pos;
             //Update the position
             pos = pos + dir; //Always move by one unit
-            if (!checkValidPosition(pos)) {
+            if (!checkValidPosition(pos) || float.IsNaN(vel)) {
                 break;
             }
 
             //Calculate height difference
             float hdif = getHeightFromCornerVertex(pos) - hold;
-            capacity = Mathf.Max(-hdif, pminslope) * vel * water * pcapacity;
+            capacity = Mathf.Min(Mathf.Max(-hdif * vel * water * pcapacity, pminCapacity), pmaxCapacity);
+
+            float dSediment; //Amount to erode or the deposit
 
             if (hdif > 0)
             {
                 float amountToDeposit = Mathf.Min(sediment, hdif);
-                depositSediment(pos, amountToDeposit);
+                depositSediment(posOld, amountToDeposit);
                 sediment -= amountToDeposit;
+                vel = 0;
             }
             else
             {
-                //
 
                 if (sediment > capacity)
                 {
-                    float amountToDeposit = (sediment - capacity) * pdeposition;
-                    sediment -= amountToDeposit;
-                    depositSediment(pos, amountToDeposit);
+                    dSediment = Mathf.Min(-hdif, sediment - capacity) * pdeposition;
+                    sediment -= dSediment;
+                    depositSediment(posOld, dSediment);
                 }
                 else
                 {
-                    float amountToErode = Mathf.Min((capacity - sediment) * perosion, -hdif);
-                    sediment += amountToErode;
-                    erodeRadius(pos, amountToErode);
+                    dSediment = Mathf.Min((capacity - sediment) * perosion, -hdif); //Le 0.99 ajouté du papier
+                    sediment += dSediment;
+                    erodeRadius(posOld, dSediment);
+
+                    //hdif += dSediment;
                 }
             }
 
             //Update of the speed and the amount of water in the drop
-            vel = Mathf.Sqrt(vel * vel - hdif * pgravity);
+            vel = Mathf.Sqrt(vel * vel - (hdif + 0.15f) * pgravity);
 
             water = water * (1 - pevaporation);
+
+            // Debug.Log("<color=red>End of a turn : </color>");
+            // Debug.Log("hdif : " + hdif);
+            // Debug.Log("vel : " + vel);
+            // Debug.Log("capacity : " + capacity);
+            // terrain.UpdateMeshWithHeightMap();
+            // yield return waitForKeyPress(KeyCode.RightArrow);
+
         }
+    }
+
+    private IEnumerator waitForKeyPress(KeyCode key)
+    {
+        bool done = false;
+        while(!done) // essentially a "while true", but with a bool to break out naturally
+        {
+            if(Input.GetKeyDown(key))
+            {
+                done = true; // breaks the loop
+            }
+            yield return null; // wait until next frame, then continue execution from here (loop continues)
+        }
+    
+        // now this function returns
     }
 
     private bool checkValidPosition(Vector2 position)
@@ -277,10 +306,10 @@ public class Erosion : MonoBehaviour
         float u = (position.x - posX * quadSize) / quadSize; //Distance from the point on the x axis
         float v = (position.y - posZ * quadSize) / quadSize; //Distance from the point on the z axis 
 
-        float weight00 = u * v ;
-        float weight01 = u * (1 - v);
-        float weight10 = (1 - u) * v;
-        float weight11 = (1 - u) * (1 - v);
+        float weight00 = (1 - u) * (1 - v);
+        float weight01 = (1 - u) * v;
+        float weight10 = u * (1 - v);
+        float weight11 = u * v ;
 
         heightMap[posZ * mapSizeX + posX] += weight00 * amountToDeposit;
         heightMap[posZ * mapSizeX + posX + 1] += weight10 * amountToDeposit;
@@ -355,6 +384,7 @@ public class Erosion : MonoBehaviour
         visualizer.transform.SetParent(transform);
         visualizer.CreateMesh(heightMap, mapSizeX, quadSize);
     }
+
     public void OnDrawGizmos () {
         if (positionGizmos == null || directionGizmos == null)
         {
